@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCR Table and List Detection</title>
+    <!-- Include Tesseract.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.3.0/dist/tesseract.min.js"></script>
+
+    <!-- Link to external CSS -->
+    <link rel="stylesheet" type="text/css" href="styles.css">
+</head>
+<body>
+    <input type="file" id="imageInput">
+    <select id="languageSelect" multiple>
+        <option value="eng">English</option>
+        <option value="nep">Nepali</option>
+        <option value="hin">Hindi</option>
+        <!-- Add more language options as needed -->
+    </select>
+    <button id="convertBtn">Convert</button>
+    <div id="statusContainer"></div>
+    <div id="resultContainer"></div>
+    <button class="copyBtn" style="display: none;">Copy</button>
+
+    <script>
+    </script>
+</body>
+</html>
