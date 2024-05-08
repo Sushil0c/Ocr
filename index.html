@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF/Image to Text Converter</title>
+  <style>
+    /* Your CSS styles remain unchanged */
+  </style>
+</head>
+<body>
+  <input type="file" id="fileInput" accept="image/*,application/pdf">
+  <select id="languageSelect">
+    <option value="eng">English</option>
+    <option value="fra">French</option>
+    <option value="ne">Nepali</option>
+    <option value="hi">Hindi</option>
+    <!-- Add more language options as needed -->
+  </select>
+  <button id="convertBtn">Convert</button>
+  <div id="statusContainer"></div>
+  <div id="resultContainer"></div>
+  <button id="copyBtn" style="display: none;">Copy</button>
+
+  <script src="tesseract.js"></script>
+  <script src="pdf.min.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const fileInput = document.getElementById('fileInput');
+      const languageSelect = document.getElementById('languageSelect');
+      const convertBtn = document.getElementById('convertBtn');
+      const statusContainer = document.getElementById('statusContainer');
+      const resultContainer = document.getElementById('resultContainer');
+      const copyBtn = document.getElementById('copyBtn');
+      let currentPage = 1;
+      let numPages = 0;
+      let pdf;
+
+      convertBtn.addEventListener('click', () => {
+        if (fileInput.files && fileInput.files[0]) {
+          const file = fileInput.files[0];
+          const reader = new FileReader();
+          const extension = file.name.split('.').pop().toLowerCase();
+
+          reader.onload = () => {
+            const result = reader.result;
+
+            if (extension === 'pdf') {
+              statusContainer.textContent = "Converting PDF to text...";
+              statusContainer.classList.remove("success", "error");
+
+              pdfjsLib.getDocument({data: result}).promise.then((pdfDoc) => {
+                numPages = pdfDoc.numPages;
+                pdf = pdfDoc;
+
+                prevBtn.disabled = false;
+                nextBtn.disabled = false;
+                jumpBtn.disabled = false;
+
+                displayPage(currentPage);
+              }).catch((error) => {
+                console.error('Error:', error);
+                statusContainer.textContent = "An error occurred during conversion. Please try again.";
+                statusContainer.classList.add("error");
+                copyBtn.style.display = "none";
+              });
+            } else if (extension === 'png' || extension === 'jpg' || extension === 'jpeg') {
+              statusContainer.textContent = "Converting image to text...";
+              statusContainer.classList.remove("success", "error");
+
+              const image = new Image();
+              image.src = result;
+
+              image.onload = () => {
+                Tesseract.recognize(image, languageSelect.value, { langPath: 'nep.traineddata' })
+                  .then((result) => {
+                    resultContainer.textContent = result.data.text;
+                    statusContainer.textContent = "Conversion complete!";
+                    statusContainer.classList.add("success");
+                    copyBtn.style.display = "inline";
+                  })
+                  .catch((error) => {
+                    console.error('Error:', error);
+                    statusContainer.textContent = "An error occurred during conversion. Please try again.";
+                    statusContainer.classList.add("error");
+                    copyBtn.style.display = "none";
+                  });
+              };
+            } else {
+              resultContainer.textContent = "";
+              statusContainer.textContent = "Unsupported file type. Please select an image file or PDF.";
+              statusContainer.classList.add("error");
+              copyBtn.style.display = "none";
+            }
+          };
+
+          if (extension === 'pdf') {
+            reader.readAsArrayBuffer(file);
+          } else {
+            reader.readAsDataURL(file);
+          }
+        } else {
+          resultContainer.textContent = "";
+          statusContainer.textContent = "Please select a file.";
+          statusContainer.classList.add("error");
+          copyBtn.style.display = "none";
+        }
+      });
+
+      const prevBtn = document.createElement('button');
+      prevBtn.textContent = "Previous";
+      prevBtn.disabled = true;
+
+      const nextBtn = document.createElement('button');
+      nextBtn.textContent = "Next";
+      nextBtn.disabled = true;
+
+      const jumpInput = document.createElement('input');
+      jumpInput.type = "number";
+      jumpInput.placeholder = "Jump to page";
+
+      const jumpBtn = document.createElement('button');
+      jumpBtn.textContent = "Jump";
+      jumpBtn.disabled = true;
+
+      const navigationContainer = document.createElement('div');
+      navigationContainer.id = "navigationContainer";
+      navigationContainer.appendChild(prevBtn);
+      navigationContainer.appendChild(nextBtn);
+      navigationContainer.appendChild(jumpInput);
+      navigationContainer.appendChild(jumpBtn);
+      document.body.appendChild(navigationContainer);
+
+      prevBtn.addEventListener('click', () => {
+        if (currentPage > 1) {
+          currentPage--;
+          displayPage(currentPage);
+        }
+      });
+
+      nextBtn.addEventListener('click', () => {
+        if (currentPage < numPages) {
+          currentPage++;
+          displayPage(currentPage);
+        }
+      });
+
+      jumpBtn.addEventListener('click', () => {
+        const pageNum = parseInt(jumpInput.value);
+        if (pageNum >= 1 && pageNum <= numPages) {
+          currentPage = pageNum;
+          displayPage(currentPage);
+        }
+      });
+
+      function displayPage(pageNum) {
+        pdf.getPage(pageNum).then((page) => {
+          page.getTextContent().then((textContent) => {
+            const pageText = textContent.items.map((item) => {
+              return item.str;
+            }).join(' ');
+            resultContainer.textContent = pageText;
+          });
+        });
+      }
+
+    });
+  </script>
+</body>
+</html>
