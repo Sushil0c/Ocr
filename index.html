@@ -1,174 +1,120 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PDF/Image to Text Converter</title>
-  <style>
-    /* Your CSS styles remain unchanged */
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image OCR</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #add8e6;
+        }
+
+        .container {
+            text-align: center;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        #output {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #000000;
+            color: #ffffff;
+            white-space: pre-wrap;
+            text-align: left;
+        }
+
+        #processingDialog {
+            display: none; /* Hidden by default */
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5em;
+            color: #555;
+            z-index: 10;
+            flex-direction: column;
+        }
+    </style>
 </head>
 <body>
-  <input type="file" id="fileInput" accept="image/*,application/pdf">
-  <select id="languageSelect">
-    <option value="eng">English</option>
-    <option value="fra">French</option>
-    <option value="ne">Nepali</option>
-    <option value="hi">Hindi</option>
-    <!-- Add more language options as needed -->
-  </select>
-  <button id="convertBtn">Convert</button>
-  <div id="statusContainer"></div>
-  <div id="resultContainer"></div>
-  <button id="copyBtn" style="display: none;">Copy</button>
+    <div class="container">
+        <h1>Image OCR</h1>
+        <input type="file" id="imageInput" accept="image/*">
+        <button id="processButton">Extract Text</button>
+        <div id="output"></div>
+        <div id="processingDialog">
+            <div>Processing...</div>
+            <div id="progressPercent">0%</div>
+        </div>
+        <audio id="processingSound" src="https://www.soundjay.com/button/sounds/button-16.mp3" loop></audio> <!-- Processing sound -->
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
+    <script>
+        document.getElementById('processButton').addEventListener('click', () => {
+            const imageInput = document.getElementById('imageInput');
+            const output = document.getElementById('output');
+            const processingDialog = document.getElementById('processingDialog');
+            const progressPercent = document.getElementById('progressPercent');
+            const processingSound = document.getElementById('processingSound');
 
-
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.3.0/dist/tesseract.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.12.313/pdf.min.js"></script>
-
-
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const fileInput = document.getElementById('fileInput');
-      const languageSelect = document.getElementById('languageSelect');
-      const convertBtn = document.getElementById('convertBtn');
-      const statusContainer = document.getElementById('statusContainer');
-      const resultContainer = document.getElementById('resultContainer');
-      const copyBtn = document.getElementById('copyBtn');
-      let currentPage = 1;
-      let numPages = 0;
-      let pdf;
-
-      convertBtn.addEventListener('click', () => {
-        if (fileInput.files && fileInput.files[0]) {
-          const file = fileInput.files[0];
-          const reader = new FileReader();
-          const extension = file.name.split('.').pop().toLowerCase();
-
-          reader.onload = () => {
-            const result = reader.result;
-
-            if (extension === 'pdf') {
-              statusContainer.textContent = "Converting PDF to text...";
-              statusContainer.classList.remove("success", "error");
-
-              pdfjsLib.getDocument({data: result}).promise.then((pdfDoc) => {
-                numPages = pdfDoc.numPages;
-                pdf = pdfDoc;
-
-                prevBtn.disabled = false;
-                nextBtn.disabled = false;
-                jumpBtn.disabled = false;
-
-                displayPage(currentPage);
-              }).catch((error) => {
-                console.error('Error:', error);
-                statusContainer.textContent = "An error occurred during conversion. Please try again.";
-                statusContainer.classList.add("error");
-                copyBtn.style.display = "none";
-              });
-            } else if (extension === 'png' || extension === 'jpg' || extension === 'jpeg') {
-              statusContainer.textContent = "Converting image to text...";
-              statusContainer.classList.remove("success", "error");
-
-              const image = new Image();
-              image.src = result;
-
-              image.onload = () => {
-                Tesseract.recognize(image, languageSelect.value, { langPath: 'nep.traineddata' })
-                  .then((result) => {
-                    resultContainer.textContent = result.data.text;
-                    statusContainer.textContent = "Conversion complete!";
-                    statusContainer.classList.add("success");
-                    copyBtn.style.display = "inline";
-                  })
-                  .catch((error) => {
-                    console.error('Error:', error);
-                    statusContainer.textContent = "An error occurred during conversion. Please try again.";
-                    statusContainer.classList.add("error");
-                    copyBtn.style.display = "none";
-                  });
-              };
-            } else {
-              resultContainer.textContent = "";
-              statusContainer.textContent = "Unsupported file type. Please select an image file or PDF.";
-              statusContainer.classList.add("error");
-              copyBtn.style.display = "none";
+            if (imageInput.files.length === 0) {
+                alert('Please select an image file.');
+                return;
             }
-          };
 
-          if (extension === 'pdf') {
-            reader.readAsArrayBuffer(file);
-          } else {
+            const file = imageInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(event) {
+                processingDialog.style.display = 'flex'; // Show processing dialog
+                processingSound.play(); // Play processing sound
+
+                Tesseract.recognize(
+                    event.target.result,
+                    'eng+nep', // specify multiple languages here (English and Nepali)
+                    {
+                        logger: m => {
+                            console.log(m);
+                            if (m.status === 'recognizing text') {
+                                const progress = Math.round(m.progress * 100);
+                                progressPercent.textContent = `${progress}%`;
+                            }
+                        }
+                    }
+                ).then(({ data: { text } }) => {
+                    // Remove unwanted characters (non-alphanumeric and non-whitespace)
+                    const cleanedText = text.replace(/[^\w\s\u0900-\u097F]/gi, '');
+                    output.textContent = cleanedText;
+                }).catch(err => {
+                    console.error(err);
+                    output.textContent = 'An error occurred while processing the image.';
+                }).finally(() => {
+                    console.log('OCR processing complete.');
+                    processingDialog.style.display = 'none'; // Hide processing dialog
+                    progressPercent.textContent = '0%'; // Reset progress
+                    processingSound.pause(); // Stop processing sound
+                    processingSound.currentTime = 0; // Reset sound to the beginning
+                });
+            };
+
             reader.readAsDataURL(file);
-          }
-        } else {
-          resultContainer.textContent = "";
-          statusContainer.textContent = "Please select a file.";
-          statusContainer.classList.add("error");
-          copyBtn.style.display = "none";
-        }
-      });
-
-      const prevBtn = document.createElement('button');
-      prevBtn.textContent = "Previous";
-      prevBtn.disabled = true;
-
-      const nextBtn = document.createElement('button');
-      nextBtn.textContent = "Next";
-      nextBtn.disabled = true;
-
-      const jumpInput = document.createElement('input');
-      jumpInput.type = "number";
-      jumpInput.placeholder = "Jump to page";
-
-      const jumpBtn = document.createElement('button');
-      jumpBtn.textContent = "Jump";
-      jumpBtn.disabled = true;
-
-      const navigationContainer = document.createElement('div');
-      navigationContainer.id = "navigationContainer";
-      navigationContainer.appendChild(prevBtn);
-      navigationContainer.appendChild(nextBtn);
-      navigationContainer.appendChild(jumpInput);
-      navigationContainer.appendChild(jumpBtn);
-      document.body.appendChild(navigationContainer);
-
-      prevBtn.addEventListener('click', () => {
-        if (currentPage > 1) {
-          currentPage--;
-          displayPage(currentPage);
-        }
-      });
-
-      nextBtn.addEventListener('click', () => {
-        if (currentPage < numPages) {
-          currentPage++;
-          displayPage(currentPage);
-        }
-      });
-
-      jumpBtn.addEventListener('click', () => {
-        const pageNum = parseInt(jumpInput.value);
-        if (pageNum >= 1 && pageNum <= numPages) {
-          currentPage = pageNum;
-          displayPage(currentPage);
-        }
-      });
-
-      function displayPage(pageNum) {
-        pdf.getPage(pageNum).then((page) => {
-          page.getTextContent().then((textContent) => {
-            const pageText = textContent.items.map((item) => {
-              return item.str;
-            }).join(' ');
-            resultContainer.textContent = pageText;
-          });
         });
-      }
-
-    });
-  </script>
+    </script>
 </body>
 </html>
