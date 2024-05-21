@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -62,7 +63,6 @@
             <div>Processing...</div>
             <div id="progressPercent">0%</div>
         </div>
-        <audio id="processingSound" src="https://www.soundjay.com/button/sounds/button-16.mp3" loop></audio> <!-- Processing sound -->
     </div>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
     <script>
@@ -71,7 +71,6 @@
             const output = document.getElementById('output');
             const processingDialog = document.getElementById('processingDialog');
             const progressPercent = document.getElementById('progressPercent');
-            const processingSound = document.getElementById('processingSound');
 
             if (imageInput.files.length === 0) {
                 alert('Please select an image file.');
@@ -83,7 +82,6 @@
 
             reader.onload = function(event) {
                 processingDialog.style.display = 'flex'; // Show processing dialog
-                processingSound.play(); // Play processing sound
 
                 Tesseract.recognize(
                     event.target.result,
@@ -108,8 +106,6 @@
                     console.log('OCR processing complete.');
                     processingDialog.style.display = 'none'; // Hide processing dialog
                     progressPercent.textContent = '0%'; // Reset progress
-                    processingSound.pause(); // Stop processing sound
-                    processingSound.currentTime = 0; // Reset sound to the beginning
                 });
             };
 
